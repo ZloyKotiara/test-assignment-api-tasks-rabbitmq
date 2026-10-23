@@ -1,0 +1,56 @@
+name: task-assignment
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: TaskApi/Dockerfile
+    ports:
+      - "${API_PORT:-8080}:8080"
+    environment:
+      ConnectionStrings__Tasks: "Host=postgres;Database=task_api;Username=taskapi;Password=${POSTGRES_PASSWORD:-taskapi}"
+      RabbitMq__HostName: rabbitmq
+      RabbitMq__UserName: taskapi
+      RabbitMq__Password: "${RABBITMQ_PASSWORD:-taskapi}"
+      ASPNETCORE_ENVIRONMENT: Production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # RabbitMQ deliberately is not a required dependency: the API must run without it.
+    stop_grace_period: 20s
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: task_api
+      POSTGRES_USER: taskapi
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-taskapi}"
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskapi -d task_api"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: taskapi
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:-taskapi}"
+    ports:
+      - "127.0.0.1:${RABBITMQ_PORT:-5672}:5672"
+      - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  postgres_data:
+  rabbitmq_data:

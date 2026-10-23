@@ -1,0 +1,28 @@
+@baseUrl = http://localhost:8080
+
+### Create (copy the returned id into taskId below)
+POST {{baseUrl}}/tasks
+Content-Type: application/json
+
+{
+  "title": "Buy milk",
+  "priority": "High"
+}
+
+### List all tasks
+GET {{baseUrl}}/tasks
+
+### Complete once: 204; repeat: 409
+@taskId = 00000000-0000-0000-0000-000000000000
+PUT {{baseUrl}}/tasks/{{taskId}}/complete
+
+### Hard delete
+DELETE {{baseUrl}}/tasks/{{taskId}}
+
+### Validation: 400
+POST {{baseUrl}}/tasks
+Content-Type: application/json
+
+{
+  "title": "   "
+}
